@@ -1,0 +1,21 @@
+{
+    "folders": [
+        {
+            "path": "."
+        }
+    ],
+    "settings": {
+        "lucodear-icons.activeIconPack": "pest",
+        "lucodear-icons.folders.associations": {
+            "dij": "di"
+        },
+        "lucodear-icons.files.customClones": [
+            {
+                "base": "database",
+                "color": "deep-orange-300",
+                "fileNames": ["datasource.yml"],
+                "name": "datasource-yaml",
+            }
+        ]
+    }
+}

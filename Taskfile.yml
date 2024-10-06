@@ -1,0 +1,88 @@
+version: '3'
+
+silent: false
+
+vars:
+  RUNTOOL: "poetry run python -m common.cli.exec_tool -t"
+
+tasks:
+  fmt:check:
+    aliases: [fmt]
+    desc: 🎨 » check code format issues
+    cmds:
+      - poetry run ruff format --check .
+
+  fmt:fix:
+    desc: 🎨 » fix code format issues
+    cmds:
+      - poetry run ruff format . 
+
+  lint:check:
+    aliases: [lint]
+    desc: 📏 » check code lint issues
+    cmds:
+      - poetry run ruff check .
+
+  lint:fix:
+    desc: 📏 » fix code lint issues
+    cmds:
+      - poetry run ruff check . --fix
+
+  checks:
+    desc: ✅ » run all checks
+    deps:
+      - fmt
+      - lint
+      - test
+
+  test:
+    desc: 🧪 » run tests
+    cmds:
+      - poetry run pytest tests
+
+  test:html:
+    desc: 🧪 » run tests and generate html report
+    cmds:
+      - poetry run pytest --cov zai_core tests/ --cov-report=html
+
+  test:json:
+    desc: 🧪 » run tests and generate html report
+    cmds:
+      - poetry run pytest --cov zai_core tests/ --cov-report=json
+      
+  build:
+    desc: 🏗️ » build package
+    sources:
+      - common/**/*
+      - pyproject.toml
+    generates:
+      - dist/common-*.*.*.tar.gz
+      - dist/common-*.*.*-py3-none-any.whl
+    cmds:
+      - rm -rf dist
+      - poetry build
+
+  publish:
+    desc: 🚀 » publish package to gitea
+    aliases: [pub]
+    summary: |
+      This task will publish the package to gitea, bumping the version according to the bump
+      argument. The default bump is patch, and the bump parameter MUST be one of patch, minor or
+      major. Call examples:
+
+      - task publish
+      - task publish bump=patch
+      - task publish bump=minor
+      - task publish bump=major
+    deps:
+      - checks
+      - build
+    vars:
+      bump: '{{.bump | default "patch"}}'
+      version:
+        sh: poetry version {{.bump}} -s
+    cmds:
+        - git add .
+        - 'git commit -m "release: 🔖 v{{.version}}"'
+        - git push
+        - poetry publish
