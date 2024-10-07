@@ -33,16 +33,6 @@ class ScopedArgsTypeProvider:
         return service
 
 
-class TypeProvider:
-    __slots__ = ('_type',)
-
-    def __init__(self, _type: Type):
-        self._type = _type
-
-    def __call__(self, *_args: Any) -> Any:
-        return self._type()
-
-
 class ScopedTypeProvider:
     __slots__ = ('_type',)
 
@@ -59,3 +49,13 @@ class ScopedTypeProvider:
         service = self._type()
         context.scoped_services[self._type] = service
         return service
+
+
+class TypeProvider:
+    __slots__ = ('_type',)
+
+    def __init__(self, _type: Type):
+        self._type = _type
+
+    def __call__(self, *_args: Any) -> Any:
+        return self._type()

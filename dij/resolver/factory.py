@@ -1,6 +1,40 @@
 from typing import Any, Callable, Type
 
 from ..svc import ActivationScope
+from ..types import ServiceLifeStyle
+from ..utils import is_coroutine_fn
+from .context import ResolutionContext
+from .factory_async import (
+    AsyncFactoryTypeProvider,
+    AsyncScopedFactoryTypeProvider,
+    AsyncSingletonFactoryTypeProvider,
+)
+
+
+class FactoryResolver:
+    __slots__ = ('concrete_type', 'factory', 'params', 'life_style')
+
+    def __init__(self, concrete_type: Type, factory: Callable, life_style: ServiceLifeStyle):
+        self.factory = factory
+        self.concrete_type = concrete_type
+        self.life_style = life_style
+
+    def __call__(self, context: ResolutionContext, *_args: Any) -> Any:
+        is_async = is_coroutine_fn(self.factory)
+
+        if self.life_style == ServiceLifeStyle.SINGLETON:
+            if is_async:
+                return AsyncSingletonFactoryTypeProvider(self.concrete_type, self.factory)
+            return SingletonFactoryTypeProvider(self.concrete_type, self.factory)
+
+        if self.life_style == ServiceLifeStyle.SCOPED:
+            if is_async:
+                return AsyncScopedFactoryTypeProvider(self.concrete_type, self.factory)
+            return ScopedFactoryTypeProvider(self.concrete_type, self.factory)
+
+        if is_async:
+            return AsyncFactoryTypeProvider(self.concrete_type, self.factory)
+        return FactoryTypeProvider(self.concrete_type, self.factory)
 
 
 class FactoryTypeProvider:
