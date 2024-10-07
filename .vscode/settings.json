@@ -1,7 +1,7 @@
 {
     "files.exclude": {
-        // 🗂️ modules and folders
-        // "tools": true,
+        // 🗂️
+        // "examples": true,
 
         // ⚙️ config
         "Taskfile.yml": true,
@@ -45,8 +45,7 @@
         "tests",
         "--verbose",
         "--no-header",
-        "--import-mode=importlib",
-        "--envfile=./tests/.env",
+        "--import-mode=importlib"
     ],
     
     "python.testing.unittestEnabled": false,
