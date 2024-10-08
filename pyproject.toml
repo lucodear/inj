@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "dij"
-version = "0.0.1"
+version = "0.0.2"
 description = "💉 dij » dependency dijection library"
 authors = ["Lucas Colombo <lucas@lucode.dev>"]
 homepage = "https://pest.lucode.ar"
