@@ -9,6 +9,7 @@ from typing import (
     Iterable,
     List,
     Mapping,
+    Optional,
     Sequence,
     Tuple,
     Type,
@@ -2019,7 +2020,7 @@ def test_annotations_abstract_type_transient_service():
     class GetCatRequestHandler:
         cats_repository: ICatsRepository
 
-        def get_cat(self, _id: str) -> Cat | None:
+        def get_cat(self, _id: str) -> Optional[Cat]:
             cat = self.cats_repository.get_by_id(_id)
             return cat
 
@@ -2254,7 +2255,7 @@ def test_iterables_annotations_singleton(annotation, value):
 
     @inject()
     class Foo:
-        items: annotation
+        items: annotation  # type: ignore
 
     container.add_instance(value, declared_class=annotation)
 
@@ -2273,10 +2274,10 @@ def test_iterables_annotations_scoped_factory(annotation, value):
 
     @inject()
     class Foo:
-        items: annotation
+        items: annotation  # type: ignore
 
     @inject()
-    def factory() -> annotation:
+    def factory() -> annotation:  # type: ignore
         return value
 
     container.add_scoped_by_factory(factory).add_scoped(Foo)
@@ -2294,10 +2295,10 @@ def test_iterables_annotations_transient_factory(annotation, value):
 
     @inject()
     class Foo:
-        items: annotation
+        items: annotation  # type: ignore
 
     @inject()
-    def factory() -> annotation:
+    def factory() -> annotation:  # type: ignore
         return value
 
     container.add_transient_by_factory(factory).add_scoped(Foo)

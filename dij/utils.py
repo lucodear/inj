@@ -1,6 +1,11 @@
 import inspect
 import re
-from typing import Any, Awaitable, Callable, Type, TypeGuard, Union
+from typing import Any, Awaitable, Callable, Type, Union
+
+try:
+    from typing import TypeGuard
+except ImportError:  # pragma: no cover
+    from typing_extensions import TypeGuard
 
 
 def class_name(input_type: Union[Type, str]) -> str:

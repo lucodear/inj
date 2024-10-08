@@ -12,7 +12,7 @@ class Cat:
 # abstract interface
 class ICatsRepository(ABC):
     @abstractmethod
-    def get_by_id(self, _id: str) -> Cat | None:
+    def get_by_id(self, _id: str) -> Optional[Cat]:
         pass
 
 
@@ -21,7 +21,7 @@ class InMemoryCatsRepository(ICatsRepository):
     def __init__(self) -> None:
         self._cats: Dict[str, Cat] = {}
 
-    def get_by_id(self, _id: str) -> Cat | None:
+    def get_by_id(self, _id: str) -> Optional[Cat]:
         return self._cats.get(_id)
 
 
@@ -30,7 +30,7 @@ class GetCatRequestHandler:
     def __init__(self, cats_repository: ICatsRepository):
         self.repo = cats_repository
 
-    def get_cat(self, _id: str) -> Cat | None:
+    def get_cat(self, _id: str) -> Optional[Cat]:
         cat = self.repo.get_by_id(_id)
         return cat
 
@@ -81,7 +81,7 @@ class FooDBCatsRepository(ICatsRepository):
     def __init__(self, context: FooDBContext):
         self.context = context
 
-    def get_by_id(self, _id: str) -> Cat | None:
+    def get_by_id(self, _id: str) -> Optional[Cat]:
         pass
 
 
@@ -221,14 +221,14 @@ class Q:
         pass
 
 
-class R:
-    def __init__(self, p: 'P') -> None:
-        self.p = p
-
-
 class P:
     def __init__(self) -> None:
         pass
+
+
+class R:
+    def __init__(self, p: P) -> None:
+        self.p = p
 
 
 class W:
