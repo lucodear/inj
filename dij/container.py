@@ -364,7 +364,7 @@ class Container(ContainerProtocol):
 
         params_len = len(signature.parameters)
 
-        is_async = inspect.iscoroutinefunction(factory)
+        is_async = inspect.iscoroutinefunction(factory) or inspect.isasyncgenfunction(factory)
 
         if params_len == 0:
             if is_async:
@@ -510,7 +510,10 @@ class AsyncFactoryWrapperNoArgs:
         self.factory = factory
 
     async def __call__(self, *_args: Any) -> Any:
-        return await self.factory()
+        res = self.factory()
+        if isawaitable(res):
+            return await res
+        return res
 
 
 class AsyncFactoryWrapperContextArg:
@@ -520,4 +523,7 @@ class AsyncFactoryWrapperContextArg:
         self.factory = factory
 
     async def __call__(self, context: ActivationScope, *_args: Any) -> Any:
-        return await self.factory(context)
+        res = self.factory(context)
+        if isawaitable(res):
+            return await res
+        return res

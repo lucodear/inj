@@ -1,3 +1,4 @@
+import inspect
 from typing import Any, Awaitable, Callable, Type
 
 from dij.svc import ActivationScope
@@ -15,7 +16,8 @@ class AsyncFactoryTypeProvider:
         if not isinstance(context, ActivationScope):
             raise TypeError(f'Expected ActivationScope, got {type(context)}')
 
-        return await self.factory(context, parent_type)
+        instance = await self.factory(context, parent_type)
+        return await maybe_solve_async_generator(instance)
 
 
 class AsyncScopedFactoryTypeProvider:
@@ -35,7 +37,7 @@ class AsyncScopedFactoryTypeProvider:
 
         instance = await self.factory(context, parent_type)
         context.scoped_services[self._type] = instance
-        return instance
+        return await maybe_solve_async_generator(instance)
 
 
 class AsyncSingletonFactoryTypeProvider:
@@ -50,4 +52,15 @@ class AsyncSingletonFactoryTypeProvider:
     async def __call__(self, context: ActivationScope, parent_type: Type) -> Any:
         if self.instance is None:
             self.instance = await self.factory(context, parent_type)
-        return self.instance
+        return await maybe_solve_async_generator(self.instance)
+
+
+async def maybe_solve_async_generator(instance: Any) -> Any:
+    """
+    Check if the instance is a generator and if so, resolve it to the first value and return it.
+    If it's not a generator, return the instance as is.
+    """
+
+    if inspect.isasyncgen(instance):
+        return await instance.__anext__()
+    return instance

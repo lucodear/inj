@@ -1,3 +1,4 @@
+import inspect
 from typing import Any, Callable, Type
 
 from ..svc import ActivationScope
@@ -48,7 +49,8 @@ class FactoryTypeProvider:
         if not isinstance(context, ActivationScope):
             raise TypeError(f'Expected ActivationScope, got {type(context)}')
 
-        return self.factory(context, parent_type)
+        instance = self.factory(context, parent_type)
+        return maybe_solve_generator(instance)
 
 
 class ScopedFactoryTypeProvider:
@@ -67,7 +69,7 @@ class ScopedFactoryTypeProvider:
 
         instance = self.factory(context, parent_type)
         context.scoped_services[self._type] = instance
-        return instance
+        return maybe_solve_generator(instance)
 
 
 class SingletonFactoryTypeProvider:
@@ -81,4 +83,15 @@ class SingletonFactoryTypeProvider:
     def __call__(self, context: ActivationScope, parent_type: Type, *_args: Any) -> Any:
         if self.instance is None:
             self.instance = self.factory(context, parent_type)
-        return self.instance
+        return maybe_solve_generator(self.instance)
+
+
+def maybe_solve_generator(instance: Any) -> Any:
+    """
+    Check if the instance is a generator and if so, resolve it to the first value and return it.
+    If it's not a generator, return the instance as is.
+    """
+
+    if inspect.isgenerator(instance):
+        return next(instance)
+    return instance
