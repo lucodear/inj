@@ -28,7 +28,6 @@ packages = [{ include = "dij" }]
 [tool.poetry.dependencies]
 python = ">=3.8,<4.0"
 requests = "^2.32.3"
-pytest-asyncio = "^0.24.0"
 typing-extensions = "^4.12.2"
 
 [tool.poetry.group.dev.dependencies]
@@ -37,6 +36,7 @@ ruff = "^0.6.9"
 [tool.poetry.group.test.dependencies]
 pytest = "^8.3.3"
 nox-poetry = "^1.0.3"
+pytest-asyncio = "^0.24.0"
 
 [build-system]
 requires = ["poetry-core"]
