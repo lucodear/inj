@@ -1,6 +1,10 @@
 import inspect
 import re
-from typing import Any, Awaitable, Callable, Type, Union
+from typing import TYPE_CHECKING, Any, Awaitable, Callable, Type, Union
+
+if TYPE_CHECKING:
+    from .container import Container
+
 
 try:
     from typing import TypeGuard
@@ -76,38 +80,54 @@ def set_async_dij(obj: Any) -> None:
         setattr(obj, '__dij_async__', True)
 
 
-def needs_promesify(instance: Any) -> bool:
+def needs_promesify(instance: Any, container: 'Container') -> bool:
     """Check if the given object has awaitables that need to be awaited.
 
     This checks if 'obj' has any awaitables that need to be awaited.
     """
-    if hasattr(instance, '__slots__'):
-        for attr in instance.__slots__:
-            value = getattr(instance, attr)
-            if inspect.isawaitable(value):
+    if instance.__class__ not in container:
+        return False
+
+    for attr in getattr(instance, '__slots__', ()):
+        value = getattr(instance, attr)
+        if inspect.isawaitable(value):
+            return True
+        else:
+            # check if value needs promesify
+            if needs_promesify(value, container):
                 return True
-    else:
-        for _, value in getattr(instance, '__dict__', {}).items():
-            if inspect.isawaitable(value):
+    for _, value in getattr(instance, '__dict__', {}).items():
+        if inspect.isawaitable(value):
+            return True
+        else:
+            # check if value needs promesify
+            if needs_promesify(value, container):
                 return True
+
     return False
 
 
-def maybe_promesify_instance(instance: Any) -> Any:
-    # check if the instance has any awaitables
-    if needs_promesify(instance):
+def maybe_promesify_instance(instance: Any, container: 'Container') -> Any:
+    """check if the instance has any awaitables, or if any of its members does"""
+    if needs_promesify(instance, container):
 
         async def async_factory() -> Any:
-            if hasattr(instance, '__slots__'):
-                for attr in instance.__slots__:
-                    value = getattr(instance, attr)
+            async def await_all(obj: Any) -> Any:
+                for attr in getattr(obj, '__slots__', ()):
+                    value = getattr(obj, attr)
                     if inspect.isawaitable(value):
-                        setattr(instance, attr, await value)
-            else:
-                for attr, value in instance.__dict__.items():
+                        setattr(obj, attr, await value)
+                    else:
+                        setattr(obj, attr, await await_all(value))  # deep await members
+
+                for attr, value in getattr(obj, '__dict__', {}).items():
                     if inspect.isawaitable(value):
-                        setattr(instance, attr, await value)
-            return instance
+                        setattr(obj, attr, await value)
+                    else:
+                        setattr(obj, attr, await await_all(value))  # deep await members
+                return obj
+
+            return await await_all(instance)
 
         return async_factory
 

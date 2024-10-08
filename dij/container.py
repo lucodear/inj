@@ -104,7 +104,7 @@ class Container(ContainerProtocol):
 
         # check if fail on coroutine is enabled in kwargs
         if kwargs.get('fail_on_coroutine', True) and (
-            needs_promesify(instance) or inspect.iscoroutine(instance)
+            needs_promesify(instance, self) or inspect.iscoroutine(instance)
         ):
             raise AsyncDependencyError(obj_type)
 
@@ -130,7 +130,7 @@ class Container(ContainerProtocol):
         """
         # first, get the instance synchronously calling the original resolve method
         instance = self.resolve(obj_type, scope, *args, **kwargs, fail_on_coroutine=False)
-        instance = maybe_promesify_instance(instance)
+        instance = maybe_promesify_instance(instance, self)
 
         if is_coroutine_fn(instance):
             return await instance()
