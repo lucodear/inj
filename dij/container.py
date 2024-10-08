@@ -1,10 +1,23 @@
+import inspect
 from collections import defaultdict
-from inspect import Signature, _empty, isabstract
-from typing import Any, Callable, DefaultDict, Dict, Optional, Set, Type, Union, get_type_hints
+from inspect import Signature, _empty, isabstract, isawaitable
+from typing import (
+    Any,
+    Awaitable,
+    Callable,
+    DefaultDict,
+    Dict,
+    Optional,
+    Set,
+    Type,
+    Union,
+    get_type_hints,
+)
 
 from .exception import (
     AliasAlreadyDefined,
     AliasConfigurationError,
+    AsyncDependencyError,
     FactoryMissingContextException,
     InvalidFactory,
     InvalidOperationInStrictMode,
@@ -16,7 +29,13 @@ from .resolver.dynamic import FactoryResolver
 from .resolver.instance import InstanceResolver
 from .svc import ActivationScope, Services
 from .types import AliasesTypeHint, ContainerProtocol, ServiceLifeStyle, T, Token
-from .utils import class_name, to_standard_param_name
+from .utils import (
+    class_name,
+    is_coroutine_fn,
+    maybe_promesify_instance,
+    needs_promesify,
+    to_standard_param_name,
+)
 
 FactoryCallableNoArguments = Callable[[], Any]
 FactoryCallableSingleArgument = Callable[[ActivationScope], Any]
@@ -81,12 +100,44 @@ class Container(ContainerProtocol):
         """
         Resolves a service by type, obtaining an instance of that type.
         """
-        return self.provider.get(obj_type, scope=scope)
+        instance = self.provider.get(obj_type, scope=scope)
+
+        # check if fail on coroutine is enabled in kwargs
+        if kwargs.get('fail_on_coroutine', True) and (
+            needs_promesify(instance) or inspect.iscoroutine(instance)
+        ):
+            raise AsyncDependencyError(obj_type)
+
+        return instance
 
     def __contains__(self, key: Type) -> bool:
         return key in self._map
 
     # endregion
+
+    async def aresolve(
+        self,
+        obj_type: Union[Type[T], str],
+        scope: Any = None,
+        *args: Any,
+        **kwargs: Any,
+    ) -> T:
+        """
+        Resolves a service by type, obtaining an instance of that type.
+
+        If the resulting instance needs await, this method should be used instead of
+        `resolve`.
+        """
+        # first, get the instance synchronously calling the original resolve method
+        instance = self.resolve(obj_type, scope, *args, **kwargs, fail_on_coroutine=False)
+        instance = maybe_promesify_instance(instance)
+
+        if is_coroutine_fn(instance):
+            return await instance()
+        elif isawaitable(instance):
+            return await instance
+        else:
+            return instance
 
     def __iter__(self) -> Any:
         yield from self._map.items()
@@ -313,10 +364,16 @@ class Container(ContainerProtocol):
 
         params_len = len(signature.parameters)
 
+        is_async = inspect.iscoroutinefunction(factory) or inspect.isasyncgenfunction(factory)
+
         if params_len == 0:
+            if is_async:
+                return AsyncFactoryWrapperNoArgs(factory)
             return FactoryWrapperNoArgs(factory)
 
         if params_len == 1:
+            if is_async:
+                return AsyncFactoryWrapperContextArg(factory)
             return FactoryWrapperContextArg(factory)
 
         if params_len == 2:
@@ -444,3 +501,29 @@ class FactoryWrapperContextArg:
 
     def __call__(self, context: ActivationScope, *_args: Any) -> Any:
         return self.factory(context)
+
+
+class AsyncFactoryWrapperNoArgs:
+    __slots__ = ('factory',)
+
+    def __init__(self, factory: Callable[[], Awaitable[Any]]):
+        self.factory = factory
+
+    async def __call__(self, *_args: Any) -> Any:
+        res = self.factory()
+        if isawaitable(res):
+            return await res
+        return res
+
+
+class AsyncFactoryWrapperContextArg:
+    __slots__ = ('factory',)
+
+    def __init__(self, factory: Callable[[ActivationScope], Awaitable[Any]]):
+        self.factory = factory
+
+    async def __call__(self, context: ActivationScope, *_args: Any) -> Any:
+        res = self.factory(context)
+        if isawaitable(res):
+            return await res
+        return res

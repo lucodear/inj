@@ -118,3 +118,17 @@ class InvalidFactory(DIException):
             f'or,'
             f'def example_factory(): '
         )
+
+
+class AsyncDependencyError(DIException):
+    """
+    Exception risen when trying to resolve a dependant in a synchronous context when it contains
+    an async dependency, or when trying to resolve an async dependency in a synchronous context.
+    """
+
+    def __init__(self, dependency: Any) -> None:
+        super().__init__(
+            f"Cannot resolve '{class_name(dependency)}'. "
+            "This dependency requires an async context to be resolved. "
+            "Hint: Use `await container.aresolve()` instead of `container.resolve()`."
+        )

@@ -22,7 +22,7 @@ from ..svc import Dependency
 from ..types import ServiceLifeStyle, Token
 from ..utils import class_name
 from .context import ResolutionContext
-from .factory import FactoryTypeProvider, ScopedFactoryTypeProvider, SingletonFactoryTypeProvider
+from .factory import FactoryResolver
 from .singleton import SingletonTypeProvider
 from .type import ArgsTypeProvider, ScopedArgsTypeProvider, ScopedTypeProvider, TypeProvider
 
@@ -226,24 +226,6 @@ class DynamicResolver:
             return self._resolve_by_init_method(context)
         except RecursionError:
             raise CircularDependencyException(chain[0], concrete_type)
-
-
-class FactoryResolver:
-    __slots__ = ('concrete_type', 'factory', 'params', 'life_style')
-
-    def __init__(self, concrete_type: Type, factory: Callable, life_style: ServiceLifeStyle):
-        self.factory = factory
-        self.concrete_type = concrete_type
-        self.life_style = life_style
-
-    def __call__(self, context: ResolutionContext, *_args: Any) -> Any:
-        if self.life_style == ServiceLifeStyle.SINGLETON:
-            return SingletonFactoryTypeProvider(self.concrete_type, self.factory)
-
-        if self.life_style == ServiceLifeStyle.SCOPED:
-            return ScopedFactoryTypeProvider(self.concrete_type, self.factory)
-
-        return FactoryTypeProvider(self.concrete_type, self.factory)
 
 
 def _get_obj_locals(obj: Any) -> Optional[Dict[str, Any]]:
