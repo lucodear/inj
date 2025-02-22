@@ -1,6 +1,6 @@
 [project]
 name = "dij"
-version = "0.0.5"
+version = "0.0.6"
 description = "💉 dij » dependency dijection library"
 authors = [
     { name = "Lucas Colombo", email = "lucas@lucode.dev" }
