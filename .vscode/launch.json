@@ -5,7 +5,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python: Debug Tests",
+            "name": "Python: Debug File",
             "type": "python",
             "request": "launch",
             "program": "${file}",

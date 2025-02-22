@@ -1,3 +1,4 @@
+import asyncio
 import inspect
 from collections import defaultdict
 from inspect import Signature, _empty, isabstract, isawaitable
@@ -104,9 +105,15 @@ class Container(ContainerProtocol):
 
         # check if fail on coroutine is enabled in kwargs
         if kwargs.get('fail_on_coroutine', True) and (
-            needs_promesify(instance, self) or inspect.iscoroutine(instance)
+            needs_promesify(instance, self)
+            or inspect.iscoroutine(instance)
+            or (isinstance(instance, asyncio.Task) and not instance.done())
         ):
             raise AsyncDependencyError(obj_type)
+
+        # if it's a task and it's done, return the result
+        if isinstance(instance, asyncio.Task) and instance.done():
+            return instance.result()
 
         return instance
 
