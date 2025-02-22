@@ -113,18 +113,22 @@ def maybe_promesify_instance(instance: Any, container: 'Container') -> Any:
 
         async def async_factory() -> Any:
             async def await_all(obj: Any) -> Any:
-                for attr in getattr(obj, '__slots__', ()):
-                    value = getattr(obj, attr)
-                    if inspect.isawaitable(value):
-                        setattr(obj, attr, await value)
-                    else:
-                        setattr(obj, attr, await await_all(value))  # deep await members
+                slots = getattr(obj, '__slots__', ())
+                if type(slots) is tuple:
+                    for attr in slots:
+                        value = getattr(obj, attr)
+                        if inspect.isawaitable(value):
+                            setattr(obj, attr, await value)
+                        else:
+                            setattr(obj, attr, await await_all(value))  # deep await members
 
-                for attr, value in getattr(obj, '__dict__', {}).items():
-                    if inspect.isawaitable(value):
-                        setattr(obj, attr, await value)
-                    else:
-                        setattr(obj, attr, await await_all(value))  # deep await members
+                members = getattr(obj, '__dict__', {})
+                if type(members) is dict:
+                    for attr, value in members.items():
+                        if inspect.isawaitable(value):
+                            setattr(obj, attr, await value)
+                        else:
+                            setattr(obj, attr, await await_all(value))  # deep await members
                 return obj
 
             return await await_all(instance)
