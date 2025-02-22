@@ -1,6 +1,6 @@
 import inspect
 import re
-from typing import TYPE_CHECKING, Any, Awaitable, Callable, Type, Union
+from typing import TYPE_CHECKING, Any, Awaitable, Callable, Iterator, Tuple, Type, Union
 
 if TYPE_CHECKING:
     from .container import Container
@@ -109,30 +109,33 @@ def needs_promesify(instance: Any, container: 'Container') -> bool:
 
 def maybe_promesify_instance(instance: Any, container: 'Container') -> Any:
     """check if the instance has any awaitables, or if any of its members does"""
-    if needs_promesify(instance, container):
+    if not needs_promesify(instance, container):
+        return instance
 
-        async def async_factory() -> Any:
-            async def await_all(obj: Any) -> Any:
-                slots = getattr(obj, '__slots__', ())
-                if type(slots) is tuple:
-                    for attr in slots:
-                        value = getattr(obj, attr)
-                        if inspect.isawaitable(value):
-                            setattr(obj, attr, await value)
-                        else:
-                            setattr(obj, attr, await await_all(value))  # deep await members
+    visited = set()
 
-                members = getattr(obj, '__dict__', {})
-                if type(members) is dict:
-                    for attr, value in members.items():
-                        if inspect.isawaitable(value):
-                            setattr(obj, attr, await value)
-                        else:
-                            setattr(obj, attr, await await_all(value))  # deep await members
-                return obj
+    async def await_all(obj: Any) -> Any:
+        if id(obj) in visited:
+            return obj
+        visited.add(id(obj))
 
-            return await await_all(instance)
+        def get_members(o: Any) -> Iterator[Tuple[str, Any]]:
+            # Yield attribute names and values from __slots__ and __dict__
+            slots = getattr(o, '__slots__', ())
+            if type(slots) is tuple:
+                for attr in slots:
+                    yield attr, getattr(o, attr)
+            members = getattr(o, '__dict__', {})
+            if type(members) is dict:
+                for attr, value in members.items():
+                    yield attr, value
 
-        return async_factory
+        for attr, value in get_members(obj):
+            # deep await members
+            if inspect.isawaitable(value):
+                setattr(obj, attr, await value)
+            else:
+                setattr(obj, attr, await await_all(value))
+        return obj
 
-    return instance
+    return await_all(instance)
