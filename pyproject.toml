@@ -1,11 +1,10 @@
-[tool.poetry]
+[project]
 name = "dij"
 version = "0.0.4"
 description = "💉 dij » dependency dijection library"
-authors = ["Lucas Colombo <lucas@lucode.dev>"]
-homepage = "https://pest.lucode.ar"
-documentation = "https://pest.lucode.ar/docs"
-repository = "https://github.com/lucodear/dij"
+authors = [
+    { name = "Lucas Colombo", email = "lucas@lucode.dev" }
+]
 license = "MIT"
 readme = "README.md"
 keywords = ["dependency", "injection", "di"]
@@ -20,15 +19,23 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
     "Operating System :: OS Independent",
     "Topic :: Software Development :: Libraries",
-
 ]
 
-packages = [{ include = "dij" }]
+requires-python = ">=3.9,<4.0"
 
-[tool.poetry.dependencies]
-python = ">=3.9,<4.0"
-requests = "^2.32.3"
-typing-extensions = "^4.12.2"
+dependencies = [
+    "requests>=2.32.3,<3.0.0",
+    "typing-extensions>=4.12.2,<5.0.0",
+]
+
+[project.urls]
+homepage = "https://github.com/lucodear/dij"
+documentation = "https://github.com/lucodear/dij#readme"
+repository = "https://github.com/lucodear/dij"
+"Bug Tracker" = "https://github.com/lucodear/dij/issues"
+
+[tool.poetry]
+packages = [{ include = "dij" }]
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.6.9"
